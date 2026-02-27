@@ -47,7 +47,7 @@ RAAN = np.deg2rad(125.6)
 AOP = np.deg2rad(137.2)
 theta0 = 0
 
-### get state ###
+### get initial state ###
 x, y, z, vx, vy, vz = keplerian2ECI(a, e, i, RAAN, AOP, theta0)
 initial_state = np.array([x, y, z, vx, vy, vz])
 
@@ -94,9 +94,9 @@ ax = fig.add_subplot(projection='3d')
 
 ax.plot(state_values[:,0], state_values[:,1], state_values[:,2])
 
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
+ax.set_xlabel('X (km)')
+ax.set_ylabel('Y (km)')
+ax.set_zlabel('Z (km)')
 ax.set_title('Orbital Trajectory')
 plt.savefig('figs/orbital_trajectory.png', dpi=400)
 plt.show()
