@@ -96,5 +96,6 @@ plt.legend()
 plt.xlabel("Time (s)")
 plt.ylabel("Spin rates (rad/s)")
 plt.title("Spin rates with gyros")
+plt.savefig("figs/spin_rate_gyros.png", dpi=400)
 plt.show()
 
