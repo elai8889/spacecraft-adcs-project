@@ -5,9 +5,12 @@ import scipy
 mu = 398600.4418 # [km/s]
 Re = 6371 # km
 h = 360 # km
-J = np.array([[ 2.40287398e-02, 1.49601815e-06, -2.52300907e-06],
-              [1.49601815e-06, 1.94085242e-02, 1.38145802e-08],
-              [-2.52300907e-06, 1.38145802e-08, 1.91983127e-02]])
+# J = np.array([[ 2.40287398e-02, 1.49601815e-06, -2.52300907e-06],
+#               [1.49601815e-06, 1.94085242e-02, 1.38145802e-08],
+#               [-2.52300907e-06, 1.38145802e-08, 1.91983127e-02]])
+J = np.array([[4.60287277e-02, 1.29582415e-05, -1.85057286e-05],
+              [ 1.29582415e-05, 6.00852798e-03, -3.25457556e-07],
+              [-1.85057286e-05, -3.25457556e-07, 1.05983211e-02]])
 
 def keplerian2ECI(a, e, i, RAAN, AOP, theta):
     # luckily i had this conversion in my back pocket from an old project
@@ -56,10 +59,13 @@ q0, q1, q2, q3 = [np.sqrt(2)/2, 0, -np.sqrt(2)/2, 0]
 q_init = np.array([q0, q1, q2, q3])
 
 ### initial angular velocity
-wx, wy, wz = [-0.06528897, 0.01556466, 0.87878852] # from previous part
+# wx, wy, wz = [-0.06528897, 0.01556466, 0.87878852] # from previous part
+# wx, wy, wz = [-0.06528897, 0.01556466, 0.87878852]
+wx, wy, wz = [-0.06528897, 0.01556466, 0.87878852]
 
 ### rotor momentum
-rhox, rhoy, rhoz = [2.64208892e-06, -1.44665945e-08, 1.83486680e-02]
+# rhox, rhoy, rhoz = [2.64208892e-06, -1.44665945e-08, 1.83486680e-02]
+rhox, rhoy, rhoz = [1.93791536e-05, 3.40818356e-07, 2.73545582e-02]
 
 ### get initial state ###
 x, y, z, vx, vy, vz = keplerian2ECI(a, e, i, RAAN, AOP, theta0)
@@ -101,6 +107,8 @@ def dynamics(state, t):
     r = state[:3]
     v = state[3:6]
     q = state[6:10]
+    q = q / np.linalg.norm(q)
+
     w = state[10:13]
     rho = state[13:16]
 
@@ -193,6 +201,7 @@ plt.xlabel("Time (s)")
 plt.ylabel("Pointing error (deg)")
 plt.ylim([-0.1, 0.1])
 plt.title("Solar panel to sun vector pointing error")
+plt.grid("true")
 plt.tight_layout()
 plt.savefig("figs/pointing_error.png", dpi=400)
 plt.show()

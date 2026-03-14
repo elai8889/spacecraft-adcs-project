@@ -8,9 +8,9 @@ rng = np.random.default_rng(4)
 J11 = 0.0086
 J22 = 0.022
 J33 = 0.0306
-J = np.array([[J11, 0, 0],
-              [0, J22, 0],
-              [0, 0, J33]])
+J = np.array([[J33, 0, 0],
+              [0, J11, 0],
+              [0, 0, J22]])
 
 # eigendecomposition
 D = J
@@ -18,11 +18,11 @@ V = np.eye(3)
 
 # perturb eigendecomposition
 mean = np.zeros(3)
-d_cov = np.array([[J11*0.01, 0, 0],
-                  [0, J22*0.01, 0],
-                  [0, 0, J33*0.01]])
+d_cov = np.array([[J33*0.01, 0, 0],
+                  [0, J11*0.01, 0],
+                  [0, 0, J22*0.01]])
 d = rng.multivariate_normal(mean, d_cov).reshape(3,)
-v = J11*0.1*rng.random((3,))
+v = rng.multivariate_normal(mean, 0.1*np.eye(3))
 
 def hat(v):
     v = v.reshape(3,)
@@ -86,6 +86,8 @@ dt = 0.01
 
 perturb = rng.normal(0, ws/10, 3).reshape(3,1)
 w_perturbed = w + perturb
+print("Perturbed angular velocity")
+print(w_perturbed)
 
 state_values, t_values = RK4_integrate(attitude_dynamics, w_perturbed, 0, tf, dt)
 
