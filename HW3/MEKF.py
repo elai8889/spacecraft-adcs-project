@@ -110,10 +110,11 @@ for k in range(n - 1):
 
 # Noise & measurement setup
 
-m = 10  # number of inertial reference vectors
+m = 3  # number of inertial reference vectors
 
-W = 0.01 * np.eye(3 * m)
-V_gyro = 0.01 * np.eye(3) # Gyro measurement noise covariance; you choose this. In reality you want this to be close to your sensor covariance
+# W = 0.01 * np.eye(3 * m) # Measurement noise
+W = np.diag([1.78e-6, 1.78e-6, 1.78e-6, 3.38e-5, 3.38e-5, 3.38e-5, 3.05e-6, 3.05e-6, 3.05e-6])
+V_gyro = 2.35e-9 * np.eye(3) # Gyro measurement noise covariance; you choose this. In reality you want this to be close to your sensor covariance
 V_filter = 0.01 * np.eye(6) # Uncertainty in how your true state evolves. Block matrix; top left is V_theta, bottom right is V_bias
 
 # Gyro bias
