@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import json
-from pathlib import Path
 
 savefig = False
 
@@ -119,9 +118,6 @@ print(f"Atmospheric density: {rho} kg/m^3")
 vx = state_values[:,3]*1000 # m/s
 vy = state_values[:,4]*1000 # m/s
 vz = state_values[:,5]*1000 # m/s
-
-this_file_dir = Path(__file__).resolve().parent
-faces_path = this_file_dir / "faces.json"
 
 with open("faces.json", "r") as f:
     faces = json.load(f)
