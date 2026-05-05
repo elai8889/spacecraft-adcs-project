@@ -137,6 +137,7 @@ def rkstep(x, u, tau, h):
     # xn[7:10] += np.random.multivariate_normal(np.zeros(3), W_gyro)
     return xn
 
+# t_sim = np.linspace(0, 90*60, 10000) # to get RMS pointing
 t_sim = np.linspace(0, 20, 1000)
 
 phi_initial = np.array([0, np.pi/2, 0])
@@ -145,6 +146,7 @@ omegak = 0.5 * np.random.randn(3)
 bk = np.zeros(3)
 xk = np.concatenate((qk, omegak, bk))
 x_array = [xk]
+r_act_array = []
 
 ## initialize filter
 # q_filt = [0.99,0.01,np.sqrt(1-0.99**2-0.01**2),0]
@@ -228,11 +230,29 @@ for i in range(len(t_sim)-1):
     tau = combined_torque[i]
     xk = rkstep(xk, u, tau, dt)
     x_array.append(xk)
+    
+    ### compute pointing error
+    r_act_array.append(Q(xk[0:4]) @ np.array([1,0,0]))
 
 x_array = np.array(x_array)
 x_filt_array = np.array(x_filt_array)
 P_array = np.array(P_array)
 u_array = np.array(u_array)
+
+### compute RMS pointing error
+r_des = np.array([1,0,0])
+err_array = []
+for r_act in r_act_array:
+    err = np.acos(np.dot(r_des, r_act))
+    err_array.append(err)
+err_array = np.array(err_array)
+
+theta_rms_rad = np.sqrt(np.mean(err_array**2))
+theta_rms_deg = np.rad2deg(theta_rms_rad)
+
+print(f"RMS pointing error: {theta_rms_rad:.6e} rad")
+print(f"RMS pointing error: {theta_rms_deg:.6f} deg")
+
 
 plt.figure()
 plt.plot(t_sim, x_array[:, 0], label="q0")
