@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 
 savefig = True
 
+combined_torque = np.load("torque.npy")
+
 # Quaternion functions
 
 def hat(v):
@@ -68,7 +70,7 @@ def logq(q):
 
 J = np.diag([0.0306, 0.0086, 0.022])
 
-def dynamics(x, u): # Gets rate of change of state at some state
+def dynamics(x, u, tau): # Gets rate of change of state at some state
     q = x[0:4]
     q = q / np.linalg.norm(q)
 
@@ -76,7 +78,7 @@ def dynamics(x, u): # Gets rate of change of state at some state
     b = x[7:10]
 
     qdot = 0.5 * G(q) @ omega
-    omegadot = -np.linalg.inv(J) @ u
+    omegadot = -np.linalg.inv(J) @ u + np.linalg.inv(J) @ tau
     bdot = np.zeros(3)
 
     xdot = np.concatenate((qdot, omegadot, bdot))
@@ -124,11 +126,11 @@ def state_prediction_deriv(x, u, h):
 
     return Aqq
 
-def rkstep(x, u, h):
-    f1 = dynamics(x, u)
-    f2 = dynamics(x + 0.5 * h * f1, u)
-    f3 = dynamics(x + 0.5 * h * f2, u)
-    f4 = dynamics(x + h * f3, u)
+def rkstep(x, u, tau, h):
+    f1 = dynamics(x, u, tau)
+    f2 = dynamics(x + 0.5 * h * f1, u, tau)
+    f3 = dynamics(x + 0.5 * h * f2, u, tau)
+    f4 = dynamics(x + h * f3, u, tau)
 
     xn = x + (h / 6.0) * (f1 + 2 * f2 + 2 * f3 + f4)
     xn[:4] = xn[:4] / np.linalg.norm(xn[:4])
@@ -137,7 +139,8 @@ def rkstep(x, u, h):
 
 t_sim = np.linspace(0, 20, 1000)
 
-qk = [1,0,0,0]
+phi_initial = np.array([0, np.pi/2, 0])
+qk = expq(phi_initial)
 omegak = 0.5 * np.random.randn(3)
 bk = np.zeros(3)
 xk = np.concatenate((qk, omegak, bk))
@@ -145,7 +148,7 @@ x_array = [xk]
 
 ## initialize filter
 # q_filt = [0.99,0.01,np.sqrt(1-0.99**2-0.01**2),0]
-q_filt = [1,0,0,0]
+q_filt = expq(phi_initial)
 # x_filt = np.concatenate((q_filt, b_filt))
 x_filt = np.array(q_filt)
 x_filt_array = [x_filt]
@@ -210,7 +213,7 @@ for i in range(len(t_sim)-1):
         meas_pred = Q(q_filt) @ rN[j]
         z_filt = meas - meas_pred
         # C = -H.T @ (L(q_filt).T @ L(H@rN[j]) + R(q_filt) @ R(H@rN[j]) @ T) @ G(q_filt)
-        C = -2 * Q(q_filt) @ hat(rN[j])
+        C = -2 * Q(q_filt) @ hat(rN[j]) # equivalent C matrix
         S = C @ P_filt @ C.T + W
         K = P_filt @ C.T @ np.linalg.inv(S)
         phi_filt = K @ z_filt
@@ -222,7 +225,8 @@ for i in range(len(t_sim)-1):
     P_array.append(P_filt)
 
     ### propagate dynamics
-    xk = rkstep(xk, u, dt)
+    tau = combined_torque[i]
+    xk = rkstep(xk, u, tau, dt)
     x_array.append(xk)
 
 x_array = np.array(x_array)

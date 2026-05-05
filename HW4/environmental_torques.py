@@ -230,3 +230,5 @@ plt.axhline(16.2, c="r")
 plt.axhline(-16.2, c="r")
 plt.savefig("figs/wheel-sat.png", dpi=400)
 plt.show()
+
+np.save("torque.npy", combined_torque)
