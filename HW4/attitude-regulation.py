@@ -242,7 +242,7 @@ u_array = np.array(u_array)
 ### compute RMS pointing error
 r_des = np.array([1,0,0])
 err_array = []
-for r_act in r_act_array:
+for r_act in r_act_array[20:]:
     err = np.acos(np.dot(r_des, r_act))
     err_array.append(err)
 err_array = np.array(err_array)
