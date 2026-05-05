@@ -264,127 +264,128 @@ def measurement_prediction_deriv(x, r_N):
 
 # Initialize MEKF 
 
-xfilt = np.zeros((7, n))
-initial_error = 0.5 * np.random.randn(3)
-xfilt[0:4, 0] = L(q0) @ expq(initial_error)
-xfilt[0:4, 0] = xfilt[0:4, 0] / np.linalg.norm(xfilt[0:4, 0])
+if __name__ == "__main__":
+    xfilt = np.zeros((7, n))
+    initial_error = 0.5 * np.random.randn(3)
+    xfilt[0:4, 0] = L(q0) @ expq(initial_error)
+    xfilt[0:4, 0] = xfilt[0:4, 0] / np.linalg.norm(xfilt[0:4, 0])
 
-xfilt[4:7, 0] = np.zeros(3)
+    xfilt[4:7, 0] = np.zeros(3)
 
-P = np.zeros((6, 6, n))
-P[:, :, 0] = 0.5 * np.eye(6)
+    P = np.zeros((6, 6, n))
+    P[:, :, 0] = 0.5 * np.eye(6)
 
-for k in range(n - 1):
-    # Prediction
-    xpred = state_prediction(xfilt[:, k], gyro[:, k], h)
-    A = state_prediction_deriv(xfilt[:, k], gyro[:, k], h)
+    for k in range(n - 1):
+        # Prediction
+        xpred = state_prediction(xfilt[:, k], gyro[:, k], h)
+        A = state_prediction_deriv(xfilt[:, k], gyro[:, k], h)
 
-    Ppred = A @ P[:, :, k] @ A.T + V_filter
+        Ppred = A @ P[:, :, k] @ A.T + V_filter
 
-    ### MEASUREMENT FOR VECTOR SENSORS
-    # Innovation
-    z = ytraj[:, k + 1] - measurement_prediction(xpred, r_N)
-    z_st = H.T @ L(xfilt[:4, k]) @ startrack[:, k]
+        ### MEASUREMENT FOR VECTOR SENSORS
+        # Innovation
+        z = ytraj[:, k + 1] - measurement_prediction(xpred, r_N)
+        z_st = H.T @ L(xfilt[:4, k]) @ startrack[:, k]
 
-    z[9:] = z_st # kind of a hacky way to implement the star tracker
-    # basically generate 4 simulate vector measurements but then replace the last one with
-    # star tracker
-    C = measurement_prediction_deriv(xpred, r_N)
-    S = C @ Ppred @ C.T + W
-
-
-    K = Ppred @ C.T @ np.linalg.inv(S)
-
-    dx = K @ z
+        z[9:] = z_st # kind of a hacky way to implement the star tracker
+        # basically generate 4 simulate vector measurements but then replace the last one with
+        # star tracker
+        C = measurement_prediction_deriv(xpred, r_N)
+        S = C @ Ppred @ C.T + W
 
 
-    phi = dx[0:3]
-    dbeta = dx[3:6]
+        K = Ppred @ C.T @ np.linalg.inv(S)
 
-    phi_norm_sq = phi.T @ phi
-    dq = np.concatenate(([np.sqrt(max(0.0, 1.0 - phi_norm_sq))], phi))
-
-    q_upd = L(xpred[0:4]) @ dq
-    q_upd = q_upd / np.linalg.norm(q_upd)
-
-    beta_upd = xpred[4:7] + dbeta
-
-    xfilt[:, k + 1] = np.concatenate((q_upd, beta_upd))
-
-    # Covariance update
-    I6 = np.eye(6)
-    P[:, :, k + 1] = (I6 - K @ C) @ Ppred @ (I6 - K @ C).T + K @ W @ K.T
+        dx = K @ z
 
 
-# Plot
+        phi = dx[0:3]
+        dbeta = dx[3:6]
 
-for i in range(4):
+        phi_norm_sq = phi.T @ phi
+        dq = np.concatenate(([np.sqrt(max(0.0, 1.0 - phi_norm_sq))], phi))
+
+        q_upd = L(xpred[0:4]) @ dq
+        q_upd = q_upd / np.linalg.norm(q_upd)
+
+        beta_upd = xpred[4:7] + dbeta
+
+        xfilt[:, k + 1] = np.concatenate((q_upd, beta_upd))
+
+        # Covariance update
+        I6 = np.eye(6)
+        P[:, :, k + 1] = (I6 - K @ C) @ Ppred @ (I6 - K @ C).T + K @ W @ K.T
+
+
+    # Plot
+
+    for i in range(4):
+        plt.figure()
+        plt.plot(xfilt[i, :], label='xfilt')
+        plt.plot(xtraj[i, :], label='xtraj')
+        plt.title(f'Quaternion component q{i}')
+        plt.xlabel('Time step')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    for i in range(3):
+        plt.figure()
+        plt.plot(xfilt[4 + i, :], label='estimated bias')
+        plt.plot(bias[i,:], label='true bias')
+        plt.title(f'Gyro bias component beta{i}')
+        plt.xlabel('Time step')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    P_max_eigval = np.zeros(n)
+    for i in range(n):
+        eigval = np.linalg.eigvals(P[:,:,i])
+        P_max_eigval[i] = max(np.abs(eigval))
+
     plt.figure()
-    plt.plot(xfilt[i, :], label='xfilt')
-    plt.plot(xtraj[i, :], label='xtraj')
-    plt.title(f'Quaternion component q{i}')
-    plt.xlabel('Time step')
-    plt.ylabel('Value')
+    plt.plot(P_max_eigval, label="P max eigenvalue")
+    plt.title("Order of magnitude of state covariance")
+    plt.xlabel("Time step")
+    plt.ylabel("Value")
     plt.legend()
     plt.grid(True)
     plt.show()
 
-for i in range(3):
     plt.figure()
-    plt.plot(xfilt[4 + i, :], label='estimated bias')
-    plt.plot(bias[i,:], label='true bias')
-    plt.title(f'Gyro bias component beta{i}')
-    plt.xlabel('Time step')
-    plt.ylabel('Value')
-    plt.legend()
+    ref_vec = np.array([1,0,0])
+    theta_arr = np.zeros(n)
+    for i in range(n):
+        rot_vec_true = Q(xtraj[0:4,i]) @ ref_vec
+        rot_vec_est = Q(xfilt[0:4,i]) @ ref_vec
+        costheta = np.dot(rot_vec_true, rot_vec_est) / (np.linalg.norm(rot_vec_true)*np.linalg.norm(rot_vec_est))
+        theta = np.rad2deg(np.acos(costheta))
+        theta_arr[i] = theta
+    plt.plot(theta_arr)
+    plt.title("Error of attitude estimation")
+    plt.xlabel("Time step")
+    plt.ylabel("Angular error (deg)")
     plt.grid(True)
+    if savefig:
+        plt.savefig("figs/mekf-error.png")
     plt.show()
 
-P_max_eigval = np.zeros(n)
-for i in range(n):
-    eigval = np.linalg.eigvals(P[:,:,i])
-    P_max_eigval[i] = max(np.abs(eigval))
+    print(f"Initial error: {theta_arr[0]}")
 
-plt.figure()
-plt.plot(P_max_eigval, label="P max eigenvalue")
-plt.title("Order of magnitude of state covariance")
-plt.xlabel("Time step")
-plt.ylabel("Value")
-plt.legend()
-plt.grid(True)
-plt.show()
-
-plt.figure()
-ref_vec = np.array([1,0,0])
-theta_arr = np.zeros(n)
-for i in range(n):
-    rot_vec_true = Q(xtraj[0:4,i]) @ ref_vec
-    rot_vec_est = Q(xfilt[0:4,i]) @ ref_vec
-    costheta = np.dot(rot_vec_true, rot_vec_est) / (np.linalg.norm(rot_vec_true)*np.linalg.norm(rot_vec_est))
-    theta = np.rad2deg(np.acos(costheta))
-    theta_arr[i] = theta
-plt.plot(theta_arr)
-plt.title("Error of attitude estimation")
-plt.xlabel("Time step")
-plt.ylabel("Angular error (deg)")
-plt.grid(True)
-if savefig:
-    plt.savefig("figs/mekf-error.png")
-plt.show()
-
-print(f"Initial error: {theta_arr[0]}")
-
-plt.figure()
-plt.plot(theta_arr / max(theta_arr), label="Angular error")
-for i in range(3):
-    plt.plot(bias[i,:] / max(np.abs(bias[i,:])), label=f"b{i+1} error")
-plt.plot(P_max_eigval / max(P_max_eigval) * 1e6, label=f"Size of covariance")
-plt.title("Measure of MEKF Error Behavior")
-plt.ylim([-1.2, 1.2])
-plt.xlabel("Time step")
-plt.ylabel("Normalized")
-plt.legend()
-plt.grid(True)
-if savefig:
-    plt.savefig("figs/mekf-behavior.png")
-plt.show()
+    plt.figure()
+    plt.plot(theta_arr / max(theta_arr), label="Angular error")
+    for i in range(3):
+        plt.plot(bias[i,:] / max(np.abs(bias[i,:])), label=f"b{i+1} error")
+    plt.plot(P_max_eigval / max(P_max_eigval) * 1e6, label=f"Size of covariance")
+    plt.title("Measure of MEKF Error Behavior")
+    plt.ylim([-1.2, 1.2])
+    plt.xlabel("Time step")
+    plt.ylabel("Normalized")
+    plt.legend()
+    plt.grid(True)
+    if savefig:
+        plt.savefig("figs/mekf-behavior.png")
+    plt.show()
